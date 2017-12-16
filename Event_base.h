@@ -4,8 +4,23 @@
 
 class EventBases : public noncopyable
 {
-//	virtual EventBase* allocBase() = 0;	
+	//	virtual EventBase* allocBase() = 0;	
 };
+
+class EventBase : public EventBases 
+{
+	public:
+		EventBase();
+		~EventBase();
+		void loop();
+		bool cancel();
+
+		EventBase& exit();
+		bool exited();
+		void wakeup();
+		
+};
+
 
 
 

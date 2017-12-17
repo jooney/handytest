@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <map>
 #include <unistd.h>
+#include "net.h"
 
 struct TimerRepeatable
 {
@@ -12,7 +13,7 @@ struct TimerRepeatable
 };
 class EventsImp
 {
-	private:
+	public:
 		EventBase*    _base;
 		PollerEpoll*  _poller;	
 		std::atomic<bool>  _exit;
@@ -102,6 +103,11 @@ EventsImp::~EventsImp()
 	delete _poller;
 }
 
+bool EventsImp::cancel(TimerId timerid)
+{
+	return false;
+}
+
 void MultiBase::loop()
 {
 	int sz = _base.size();
@@ -118,9 +124,26 @@ void MultiBase::loop()
 Channel::Channel(EventBase* base,int fd,int events)
 	:_base(base),_fd(fd),_events(events)
 {
-
+	net::setNonBlock(_fd);
+	static std::atomic<int64_t> id(0);
+	_id = ++id;
+	_poller = _base->_imp->_poller;
+	_poller->addChannel(this);
 }
 
 Channel::~Channel()
 {
+	close();
+}
+
+void Channel::close()
+{
+	if (_fd >= 0)
+	{
+		printf("close channel id[%lld] fd[%d]",(long long)_id, _fd);
+		_poller->removeChannel(this);
+		::close(_fd);
+		_fd = -1;
+		handleRead();
+	}
 }

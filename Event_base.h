@@ -7,7 +7,8 @@
 
 class EventBases : public noncopyable
 {
-	//	virtual EventBase* allocBase() = 0;	
+	public:
+		virtual EventBases* allocBase() = 0;	
 };
 
 class EventsImp;
@@ -29,7 +30,7 @@ class EventBase : public EventBases
 		bool exited();
 		void wakeup();
 		void safeCall(Task&& task);	
-		virtual EventBase* allocBase(){return this;}
+		virtual EventBases* allocBase(){return this;}
 	public:
 		std::unique_ptr<EventsImp> _imp;
 };
@@ -87,6 +88,7 @@ class Channel : public noncopyable
 		void enableWrite(bool enable);
 		void enableReadWrite(bool readable, bool writeable);
 		bool readEnabled();
+		bool writeEnabled();
 		// handle read write event  
 		void handleRead() {_readcb();}
 		void handleWrite(){_writecb();}

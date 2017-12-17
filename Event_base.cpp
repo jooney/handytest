@@ -147,3 +147,48 @@ void Channel::close()
 		handleRead();
 	}
 }
+
+void Channel::enableRead(bool enable)
+{
+	if (enable)
+	{
+		_events |= kReadEvent; 
+	}
+	else{
+		_events &= ~kReadEvent;
+	}
+	_poller->updateChannel(this);
+}
+
+void Channel::enableWrite(bool enable)
+{
+	if (enable){
+		_events |= kWriteEvent;
+	}else{
+		_events &= ~kWriteEvent;
+	}
+	_poller->updateChannel(this);
+}
+
+void Channel::enableReadWrite(bool readable,bool writeable)
+{
+	if (readable)
+		_events |= kReadEvent;
+	else 
+		_events &= ~kReadEvent;
+	if (writeable)
+		_events |= kWriteEvent;
+	else 
+		_events &= ~kWriteEvent;
+	_poller->updateChannel(this);
+}
+
+bool Channel::readEnabled()
+{
+	return _events & kReadEvent;
+}
+
+bool Channel::writeEnabled()
+{
+	return _events & kWriteEvent;
+}

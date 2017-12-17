@@ -3,6 +3,8 @@
 #include <errno.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
+#include <string.h>
+#include "port.h"
 
 int net::setNonBlock(int fd)
 {
@@ -28,4 +30,20 @@ int net::setNoDelay(int fd)
 {
 	int flag = true;
 	return setsockopt(fd,SOL_SOCKET,TCP_NODELAY,&flag, sizeof(flag));
+}
+
+Ip4Addr::Ip4Addr(const std::string& host, short port)
+{
+	memset(&_addr, 0, sizeof _addr);
+	_addr.sin_family = AF_INET;
+	_addr.sin_port = htons(port);
+	if (host.size()){
+		_addr.sin_addr = getHostByName(host); 
+	}else{
+		_addr.sin_addr.s_addr = INADDR_ANY;
+	}
+	if (_addr.sin_addr.s_addr == INADDR_NONE){
+		printf("cannot resove %s to ip", host.c_str());
+	}
+
 }

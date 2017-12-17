@@ -16,6 +16,7 @@ typedef std::pair<int64_t, int64_t> TimerId;
 
 struct util 
 {
+	static std::string format(const char* fmt,...);
 	static int64_t timeMicro();
 	static int64_t timeMilli(){return timeMicro() / 1000;}
 	static int64_t steadyMicro();

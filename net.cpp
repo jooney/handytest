@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include "port.h"
+#include "Util.h"
 
 int net::setNonBlock(int fd)
 {
@@ -45,5 +46,15 @@ Ip4Addr::Ip4Addr(const std::string& host, short port)
 	if (_addr.sin_addr.s_addr == INADDR_NONE){
 		printf("cannot resove %s to ip", host.c_str());
 	}
+}
 
+std::string Ip4Addr::toString() const
+{
+	uint32_t uip = _addr.sin_addr.s_addr;
+	return util::format("%d.%d.%d.%d.%d",
+		(uip>>0)&0xFF,
+		(uip>>8)&0xFF,
+		(uip>>16)&0xFF,
+		(uip>>24)&0xFF,
+		ntohs(_addr.sin_port));
 }

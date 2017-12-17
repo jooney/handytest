@@ -20,7 +20,7 @@ class TcpConn : public std::enable_shared_from_this<TcpConn>, public noncopyable
 			return conn;
 		}
 	private:
-		EventBase*     _base;
+		EventBases*    _base;
 		Channel*       _channel;
 		Ip4Addr        _local,  _peer;
 		State          _state;

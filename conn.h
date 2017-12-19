@@ -4,6 +4,7 @@
 #include "Util.h"
 #include "Event_base.h"
 #include "net.h"
+#include <assert.h>
 
 class TcpConn;
 typedef std::shared_ptr<TcpConn> TcpConnPtr;
@@ -19,8 +20,8 @@ class TcpConn : public std::enable_shared_from_this<TcpConn>, public noncopyable
 			TcpConnPtr conn(new TcpConn());
 			return conn;
 		}
-	private:
-		EventBases*    _base;
+	public:
+		EventBase*     _base;
 		Channel*       _channel;
 		Ip4Addr        _local,  _peer;
 		State          _state;
@@ -29,28 +30,39 @@ class TcpConn : public std::enable_shared_from_this<TcpConn>, public noncopyable
 		std::string    _localIp, _destHost;
 		int            _dstPort, _connectTimeout, _reconnectInterval;
 		int64_t        _connectedTime;
+		char           _writeBuffer[1024]; //only for test
 		void  handleRead(const TcpConnPtr& conn);
 		void  handleWrite(const TcpConnPtr& conn);
 		void  cleanup(const TcpConnPtr& conn);
 		void  connect(EventBase* base, const std::string& host, short port,int timeout, const std::string& localip);
 		void  reconnect();
 		void  attach(EventBase* base, int fd, Ip4Addr local, Ip4Addr peer);
+		void  onRead(const TcpCallBack& cb){assert(!_readcb);_readcb = cb;}
+		void  onWritable(const TcpCallBack& cb) {_writecb = cb;}
+		void  onState(const TcpCallBack& cb) {_statecb = cb;}
+		void  close();
+		int handleHandshake(const TcpConnPtr&);
+		void Send(const char* buf,size_t len);//just simulate first
+		ssize_t iSend(const char* buf, size_t len);
 
 };
 
+class TcpServer;
+typedef std::shared_ptr<TcpServer> TcpServerPtr;
 class TcpServer : public noncopyable  
 {
 	public:
 		TcpServer(EventBases* base);
-		int bind(const std::string&,short, bool reusePort = false);
+		int bind(const std::string&,short);
+		static TcpServerPtr startServer(EventBases* bases,const std::string& host, short port, bool reusePort = false);
 		~TcpServer() {}
 		Ip4Addr getAddr() {return _addr;}
-		EventBases* getBase() {return _bases;}
+		EventBase* getBase() {return _base;}
 		void onConnCreate(const std::function<TcpConnPtr()>& cb){_createcb = cb;};
 		void onConnState(const TcpCallBack& cb){_statecb = cb;}
 
 	private:
-	//	EventBase*      _base;
+		EventBase*      _base;
 		EventBases*     _bases;
 		Channel*        _listen_channel;
 		Ip4Addr         _addr;
@@ -59,6 +71,5 @@ class TcpServer : public noncopyable
 		void handleAccept();
 };
 
-typedef std::shared_ptr<TcpServer> TcpServerPtr;
 
 #endif

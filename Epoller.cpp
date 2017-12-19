@@ -2,6 +2,7 @@
 #include "Epoller.h"
 #include "Event_base.h"
 #include <string.h>
+#include "log.h"
 
 PollerEpoll* createPoller()
 {
@@ -11,12 +12,12 @@ PollerEpoll* createPoller()
 PollerEpoll::PollerEpoll()
 {
 	_fd = epoll_create(EPOLL_CLOEXEC);
-	std::cout<<"PollerEpoll::PollerEpoll()"<<std::endl;
+	debug("PollerEpoll::PollerEpoll() fd[%d]",_fd);
 }
 
 PollerEpoll::~PollerEpoll()
 {
-	std::cout<<"destroying poller: "<<_fd<<std::endl;
+	debug("destroying poller: fd[%d]",_fd);
 	while (_liveChannels.size())
 	{
 
@@ -29,7 +30,7 @@ void PollerEpoll::addChannel(Channel* ch)
 	memset(&ev, 0, sizeof(ev));
 	ev.events = ch->events();
 	ev.data.ptr = ch;
-	printf("adding channel id[%lld] fd[%d] events[%d] epoll[%d]",(long long)ch->id(),ch->fd(),ev.events,_fd);
+	debug("epoll[%p] addChannel id[%lld] fd[%d] events[%d]",this,(long long)ch->id(),ch->fd(),ev.events);
 	epoll_ctl(_fd,EPOLL_CTL_ADD,ch->fd(),&ev);
 	_liveChannels.insert(ch);
 }
@@ -40,15 +41,15 @@ void PollerEpoll::updateChannel(Channel* ch)
 	memset(&ev,0,sizeof(ev));
 	ev.events = ch->events();
 	ev.data.ptr = ch;
-	printf("modifying channel id[%lld] fd[%d] events read:[%d] write:[%d] epoll:[%d]",
-			(long long)ch->id(), ch->fd(),ev.events & EPOLLIN, ev.events & EPOLLOUT,_fd);
+	debug("epoll[%p] updateChannel id[%lld] fd[%d] events read:[%d] write:[%d]",
+			this,(long long)ch->id(), ch->fd(),ev.events & EPOLLIN, ev.events & EPOLLOUT);
 	epoll_ctl(_fd,EPOLL_CTL_MOD,ch->fd(),&ev);
 }
 
 void PollerEpoll::removeChannel(Channel* ch)
 {
-	printf("deletng channel id[%lld] fd[%d] epoll[%d]",
-		(long long)ch->id(),ch->fd(),_fd);
+	debug("epoll[%p] removeChannel id[%lld] fd[%d]",
+		this,(long long)ch->id(),ch->fd());
 	_liveChannels.erase(ch);
 	for (int i = _lastActive; i>= 0;i--)
 	{
@@ -62,11 +63,11 @@ void PollerEpoll::removeChannel(Channel* ch)
 
 void PollerEpoll::loop_once(int waitMs)
 {
+	debug("epoll[%p] PollerEpoll::loop_once waitMs[%d]",this,waitMs);
 	int64_t ticks = util::timeMilli();
 	_lastActive = ::epoll_wait(_fd,_activeEvs,kMaxEvents,waitMs);
 	int64_t used = util::timeMilli() - ticks;
-	printf("epoll waitMs[%d] used [%lld] millsecond",
-		waitMs, (long long)used);
+	debug("epoll[%p] waitMs[%d] used [%lld] millsecond",this,waitMs, (long long)used);
 	while (--_lastActive >= 0)
 	{
 		int i = _lastActive;
@@ -76,18 +77,16 @@ void PollerEpoll::loop_once(int waitMs)
 		{
 			if (events & kReadEvent)
 			{
-				printf("channel id[%lld] fd[%d] handle read",
-						(long long)ch->id(),ch->fd());
+				debug("epoll[%p] channel id[%lld] fd[%d] handle read",this,(long long)ch->id(),ch->fd());
 				ch->handleRead();
 			}
 			else if (events & kWriteEvent)
 			{
-				printf("channel id[%lld] fd[%d] handle read",
-						(long long)ch->id(),ch->fd());
+				debug("epoll[%p] channel id[%lld] fd[%d] handle write",this,(long long)ch->id(),ch->fd());
 				ch->handleWrite();
 			}
 			else{
-				printf("unexpected poller events\n");
+				debug("epoll[%p] unexpected poller events",this);
 			}
 		}
 	}

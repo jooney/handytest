@@ -17,6 +17,7 @@ class Ip4Addr
 	public:
 		Ip4Addr(const std::string& host, short port);
 		Ip4Addr(short port = 0):Ip4Addr("",port){}
+		Ip4Addr(const struct sockaddr_in& addr):_addr(addr){}
 		std::string toString() const;
 		std::string ip() const;
 		short port() const;

@@ -3,6 +3,7 @@
 #include <map>
 #include <unistd.h>
 #include "net.h"
+#include "log.h"
 
 struct TimerRepeatable
 {
@@ -17,7 +18,7 @@ class EventsImp
 		EventBase*    _base;
 		PollerEpoll*  _poller;	
 		std::atomic<bool>  _exit;
-//		int _wakeupFds[2];
+	//	int _wakeupFds[2];
 		WorkQueue<Task> _tasks;
 		std::map<TimerId, TimerRepeatable> _timerReps;
 		std::map<TimerId, Task> _timers;
@@ -34,12 +35,25 @@ class EventsImp
 		// eventbase  functions 
 		EventBase& exit() {_exit = true; wakeup(); return *_base;}
 		bool exited() {return _exit;}
-		void safeCall(Task&& task) {_tasks.push(std::move(task));wakeup();}
+		void safeCall(Task&& task) 
+		{
+			_tasks.push(std::move(task));
+			wakeup();
+		}
+		//void safeCall(Task& task)
+		//{
+		//	_tasks.push(std::move(task));
+		//	wakeup();
+		//}
 		void loop();
-		void loop_once(int waitMs) {}
+		void loop_once(int waitMs) { _poller->loop_once(waitMs);}
 		void wakeup()
 		{
-		
+			Task task;
+			while (_tasks.pop_wait(&task,0))
+			{
+				task();
+			}
 		}
 		bool cancel(TimerId timerid);
 		TimerId runAt(int64_t milli, Task&& task, int64_t interval);
@@ -75,6 +89,7 @@ EventsImp::EventsImp(EventBase* base, int taskCap)
 
 void EventsImp::loop()
 {
+	debug("EventsImp::loop() start\n");
 	while (!_exit)
 	{
 		loop_once(10000);
@@ -86,11 +101,12 @@ void EventsImp::loop()
 
 void EventsImp::init()
 {
-//	int r = pipe(_wakeupFds);
-//	r = util::addFdFlag(_wakeupFds[0],FD_CLOEXEC);
-//	r = util::addFdFlag(_wakeupFds[1],FD_CLOEXEC);
-//	std::cout<<"wakeup pipe created: "<<_wakeupFds[0]<<":"<<_wakeupFds[1]<<std::endl;
-//	Channel * ch = new Channel(_base,_wakeupFds[0],kReadEvent);
+	//int r = pipe(_wakeupFds);
+	//r = util::addFdFlag(_wakeupFds[0],FD_CLOEXEC);
+	//r = util::addFdFlag(_wakeupFds[1],FD_CLOEXEC);
+	//std::cout<<"wakeup pipe created: "<<_wakeupFds[0]<<":"<<_wakeupFds[1]<<std::endl;
+	//Channel * ch = new Channel(_base,_wakeupFds[0],kReadEvent);
+	//ch->onRead([=])
 
 }
 
@@ -127,8 +143,16 @@ Channel::Channel(EventBase* base,int fd,int events)
 	net::setNonBlock(_fd);
 	static std::atomic<int64_t> id(0);
 	_id = ++id;
-	_poller = _base->_imp->_poller;
-	_poller->addChannel(this);
+	EventBase* pBase = dynamic_cast<EventBase*>(_base);
+	if (pBase)
+	{
+		_poller = pBase->_imp->_poller;
+		_poller->addChannel(this);
+		debug("Channel::Channel _poller->addChannel(this) fd[%d] id[%lld]\n",_fd,(long long)_id);
+	}
+	else{
+		error("Channel::Channel failed\n");
+	}
 }
 
 Channel::~Channel()
@@ -140,7 +164,7 @@ void Channel::close()
 {
 	if (_fd >= 0)
 	{
-		printf("close channel id[%lld] fd[%d]",(long long)_id, _fd);
+		debug("close channel id[%lld] fd[%d]",(long long)_id, _fd);
 		_poller->removeChannel(this);
 		::close(_fd);
 		_fd = -1;

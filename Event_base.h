@@ -4,11 +4,11 @@
 #include "threads.h"
 #include "Util.h"
 #include "Epoller.h"
-
+class EventBase;
 class EventBases : public noncopyable
 {
 	public:
-		virtual EventBases* allocBase() = 0;	
+		virtual EventBase* allocBase() = 0;	
 };
 
 class EventsImp;
@@ -30,7 +30,8 @@ class EventBase : public EventBases
 		bool exited();
 		void wakeup();
 		void safeCall(Task&& task);	
-		virtual EventBases* allocBase(){return this;}
+		void safeCall(Task& task);
+		virtual EventBase* allocBase(){return this;}
 	public:
 		std::unique_ptr<EventsImp> _imp;
 };
@@ -62,7 +63,7 @@ class MultiBase : public EventBases
 class Channel : public noncopyable 
 {
 	private:
-		EventBase* _base;
+		EventBase*  _base;
 		PollerEpoll* _poller;
 		int       _fd;
 		short     _events;
@@ -71,8 +72,8 @@ class Channel : public noncopyable
 	public:
 		Channel(EventBase* base, int fd, int events);
 		~Channel();
-		EventBase* getBase() {return _base;}
-		int fd() {return _id;}
+		EventBase*  getBase() {return _base;}
+		int fd() {return _fd;}
 		//channel's id
 		int64_t   id() {return _id;}
 		short events(){return _events;}

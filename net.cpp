@@ -58,3 +58,92 @@ std::string Ip4Addr::toString() const
 		(uip>>24)&0xFF,
 		ntohs(_addr.sin_port));
 }
+
+
+char* Buffer::makeRoom(size_t len)
+{
+	if (_e + len < _cap)
+	{
+	}
+	else if(size() + len < _cap / 2)
+	{
+		moveHead();
+	}
+	else{
+		expand(len);
+	}
+	return end();
+}
+void Buffer::makeRoom()
+{
+	if (space() < _exp)
+		expand(0);
+}
+
+void Buffer::moveHead()
+{
+	std::copy(begin(),end(),_buf);
+	_e -= _b;
+	_b = 0;
+}
+
+void Buffer::expand(size_t len)
+{
+	size_t ncap = std::max(_exp,std::max(size()+len,2*_cap));
+	char* p = new char[ncap];
+	std::copy(begin(),end(),p);
+	_e -= _b;
+	_b = 0;
+	delete[] _buf;
+	_buf = p;
+	_cap = ncap;
+}
+
+Buffer& Buffer::append(const char* p, size_t len)
+{
+	memcpy(makeRoom(len),p,len);
+	return *this;
+}
+
+Buffer& Buffer::append(const char* p)
+{
+	memcpy(makeRoom(strlen(p)),p,strlen(p));
+	return *this;
+}
+
+Buffer& Buffer::consume(size_t len)
+{
+	_b += len;
+	if (size() == 0)
+		clear();
+	return *this;
+}
+
+void Buffer::copyFrom(const Buffer& ref)
+{
+	memcpy(this,&ref, sizeof ref);
+	if (ref._buf)
+	{
+		_buf = new char[ref._cap];
+		memcpy(_buf,ref.begin(),ref.size());//?????
+	}
+}
+Buffer& Buffer::absorb(Buffer& buf)
+{
+	if (&buf != this)
+	{
+		if (size() == 0)
+		{
+			char b[sizeof buf];
+			memcpy(b,this,sizeof b);
+			memcpy(this,&buf,sizeof b);
+			memcpy(&buf,b,sizeof b);
+			std::swap(_exp,buf._exp);
+		}
+		else{
+			append(buf.begin(),buf.size());
+			buf.clear();
+		}
+	}
+	return *this;
+}

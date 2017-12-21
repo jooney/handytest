@@ -89,7 +89,7 @@ EventsImp::EventsImp(EventBase* base, int taskCap)
 
 void EventsImp::loop()
 {
-	debug("EventsImp::loop() start\n");
+	info("EventsImp::loop() start\n");
 	while (!_exit)
 	{
 		loop_once(10000);
@@ -148,7 +148,7 @@ Channel::Channel(EventBase* base,int fd,int events)
 	{
 		_poller = pBase->_imp->_poller;
 		_poller->addChannel(this);
-		debug("Channel::Channel _poller->addChannel(this) fd[%d] id[%lld]\n",_fd,(long long)_id);
+		info("Channel::Channel _poller->addChannel(this) fd[%d] id[%lld]\n",_fd,(long long)_id);
 	}
 	else{
 		error("Channel::Channel failed\n");
@@ -164,11 +164,11 @@ void Channel::close()
 {
 	if (_fd >= 0)
 	{
-		debug("close channel id[%lld] fd[%d]",(long long)_id, _fd);
+		info("close channel id[%lld] fd[%d]",(long long)_id, _fd);
 		_poller->removeChannel(this);
 		::close(_fd);
 		_fd = -1;
-		handleRead();
+	//	handleRead();
 	}
 }
 

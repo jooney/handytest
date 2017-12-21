@@ -79,7 +79,7 @@ class Channel : public noncopyable
 		short events(){return _events;}
 		//close channel
 		void close();
-		//attach callback to channel 
+		//attach callback to channel,and increase tje reference of tcpconnection 
 		void onRead(const Task& readcb){ _readcb = readcb;}
 		void onWrite(const Task& writecb){_writecb = writecb;}
 		void onRead(Task&& readcb){_readcb = std::move(readcb);}

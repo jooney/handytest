@@ -30,6 +30,8 @@ class TcpConn : public std::enable_shared_from_this<TcpConn>, public noncopyable
 		std::string    _localIp, _destHost;
 		int            _dstPort, _connectTimeout, _reconnectInterval;
 		int64_t        _connectedTime;
+		Buffer         _input;
+		Buffer         _output;
 		char           _writeBuffer[1024]; //only for test
 		void  handleRead(const TcpConnPtr& conn);
 		void  handleWrite(const TcpConnPtr& conn);
@@ -37,12 +39,14 @@ class TcpConn : public std::enable_shared_from_this<TcpConn>, public noncopyable
 		void  connect(EventBase* base, const std::string& host, short port,int timeout, const std::string& localip);
 		void  reconnect();
 		void  attach(EventBase* base, int fd, Ip4Addr local, Ip4Addr peer);
+	//	void  outputRead(const )
 		void  onRead(const TcpCallBack& cb){assert(!_readcb);_readcb = cb;}
 		void  onWritable(const TcpCallBack& cb) {_writecb = cb;}
 		void  onState(const TcpCallBack& cb) {_statecb = cb;}
 		void  close();
 		int handleHandshake(const TcpConnPtr&);
 		void Send(const char* buf,size_t len);//just simulate first
+		void send(const char* buf,size_t len);//by _output
 		ssize_t iSend(const char* buf, size_t len);
 
 };

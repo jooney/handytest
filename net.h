@@ -29,5 +29,35 @@ class Ip4Addr
 		struct sockaddr_in _addr;
 };
 
+class Buffer
+{
+	public:
+		Buffer():_buf(NULL),_b(0),_e(0),_cap(0),_exp(512){}
+		~Buffer() {delete []_buf;}
+		void clear() {delete[] _buf; _buf = NULL;_b = _e = _cap = 0;}
+		size_t size() const{return _e - _b;}
+		bool empty() const {return _b == _e;}
+		char* data() const {return _buf+_b;}
+		char* begin() const {return _buf + _b;}
+		char* end() const {return _buf+_e;}
+		char* makeRoom(size_t len);
+		void  makeRoom();
+		size_t space() const {return _cap - _e;}
+		void addSize(size_t len) {_e += len;}
+		char* allocRoom(size_t len){char* p = makeRoom(len);addSize(len);return p;}
+		Buffer& append(const char* p, size_t len);
+		Buffer& append(const char* p);
+		void setSuggestSize(size_t sz) {_exp = sz;}
+		Buffer& consume(size_t len);
+		Buffer& absorb(Buffer& buf);
+	private:
+		char* _buf;
+		size_t _b, _e ,_cap, _exp;
+	private:
+		void moveHead();
+		void expand(size_t len);
+		void copyFrom(const Buffer&);
+};
+
 
 #endif
